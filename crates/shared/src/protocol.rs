@@ -21,14 +21,22 @@ impl Plugin for ProtocolPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(lightyear::prelude::input::native::InputPlugin::<PlayerInput>::default());
 
-        app.register_component::<TeamColor>();
-        app.register_component::<Ship>();
-        app.register_component::<OwnedBy>();
-        app.register_component::<Radius>();
-        app.register_component::<Position>();
-        app.register_component::<Health>();
-        app.register_component::<EnemyType>();
-        app.register_component::<Velocity>();
-        app.register_component::<OrbitData>();
+        app.register_component::<TeamColor>().add_prediction();
+
+        app.register_component::<Ship>().add_prediction();
+
+        app.register_component::<OwnedBy>().add_prediction();
+
+        app.register_component::<Radius>().add_prediction();
+
+        app.register_component::<Position>().add_prediction();
+
+        app.register_component::<Health>().add_prediction();
+
+        app.register_component::<EnemyType>().add_prediction();
+
+        app.register_component::<Velocity>().add_prediction();
+
+        app.register_component::<OrbitData>().add_prediction();
     }
 }
