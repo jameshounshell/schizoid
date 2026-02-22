@@ -1,0 +1,60 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build all crates
+    cmds:
+      - cargo build --workspace
+
+  test:
+    desc: Run all tests
+    cmds:
+      - cargo test --workspace
+
+  test-harness:
+    desc: Run test harness tests only
+    cmds:
+      - cargo test -p schizoid-test-harness
+
+  check:
+    desc: Check all crates compile
+    cmds:
+      - cargo check --workspace
+
+  clippy:
+    desc: Run clippy lints
+    cmds:
+      - cargo clippy --workspace -- -D warnings
+
+  fmt:
+    desc: Format all code
+    cmds:
+      - cargo fmt --all
+
+  fmt-check:
+    desc: Check formatting
+    cmds:
+      - cargo fmt --all -- --check
+
+  server:
+    desc: Run the game server
+    cmds:
+      - cargo run -p schizoid-server -- {{.CLI_ARGS}}
+
+  client:
+    desc: Run the game client
+    cmds:
+      - cargo run -p schizoid-client -- {{.CLI_ARGS}}
+
+  lint:
+    desc: Run all lints (fmt + clippy)
+    cmds:
+      - task: fmt-check
+      - task: clippy
+
+  ci:
+    desc: Full CI check (fmt + clippy + test)
+    cmds:
+      - task: fmt-check
+      - task: clippy
+      - task: test

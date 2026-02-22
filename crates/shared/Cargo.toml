@@ -1,0 +1,11 @@
+[package]
+name = "schizoid-shared"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true }
+lightyear = { workspace = true }
+serde = { workspace = true }
+rand = { workspace = true }

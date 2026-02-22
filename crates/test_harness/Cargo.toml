@@ -1,0 +1,10 @@
+[package]
+name = "schizoid-test-harness"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true }
+lightyear = { workspace = true, features = ["client", "server", "netcode", "crossbeam"] }
+schizoid-shared = { path = "../shared" }

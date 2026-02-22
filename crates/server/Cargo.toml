@@ -1,0 +1,11 @@
+[package]
+name = "schizoid-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true, default-features = false, features = ["bevy_log", "bevy_state"] }
+lightyear = { workspace = true, features = ["server", "netcode", "udp"] }
+schizoid-shared = { path = "../shared" }
+clap = { workspace = true }
