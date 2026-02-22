@@ -1,6 +1,6 @@
 use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy::post_process::bloom::Bloom;
 use bevy::prelude::*;
-use bevy_post_process::bloom::Bloom;
 use schizoid_shared::components::*;
 
 pub struct RenderingPlugin;

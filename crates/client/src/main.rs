@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_post_process::PostProcessPlugin;
 use clap::Parser;
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
@@ -43,9 +42,6 @@ fn main() {
         }),
         ..default()
     }));
-
-    // Post-processing (bloom)
-    app.add_plugins(PostProcessPlugin);
 
     // Lightyear client
     app.add_plugins(lightyear::prelude::client::ClientPlugins {

@@ -6,7 +6,6 @@ license.workspace = true
 
 [dependencies]
 bevy = { workspace = true }
-bevy_post_process = "0.18"
 lightyear = { workspace = true, features = ["client", "netcode", "udp"] }
 schizoid-shared = { path = "../shared" }
 clap = { workspace = true }
