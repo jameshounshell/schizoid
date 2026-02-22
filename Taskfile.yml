@@ -58,3 +58,38 @@ tasks:
       - task: fmt-check
       - task: clippy
       - task: test
+
+  play:
+    desc: Build, then start server + client in the background
+    cmds:
+      - nix develop -c cargo build --workspace
+      - |
+        nix develop -c cargo run -p schizoid-server -- {{.CLI_ARGS}} &
+        SERVER_PID=$!
+        echo $SERVER_PID > /tmp/schizoid-server.pid
+        echo "Server started (PID $SERVER_PID)"
+        sleep 2
+        nix develop -c cargo run -p schizoid-client -- {{.CLI_ARGS}} &
+        CLIENT_PID=$!
+        echo $CLIENT_PID > /tmp/schizoid-client.pid
+        echo "Client started (PID $CLIENT_PID)"
+        echo "Run 'task stop' to tear down"
+
+  stop:
+    desc: Kill running server and client
+    cmds:
+      - |
+        for f in /tmp/schizoid-server.pid /tmp/schizoid-client.pid; do
+          if [ -f "$f" ]; then
+            pid=$(cat "$f")
+            if kill -0 "$pid" 2>/dev/null; then
+              kill "$pid"
+              echo "Killed PID $pid"
+            fi
+            rm -f "$f"
+          fi
+        done
+        # Catch any stragglers
+        pkill -f schizoid-server 2>/dev/null || true
+        pkill -f schizoid-client 2>/dev/null || true
+        echo "Stopped"
