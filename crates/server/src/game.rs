@@ -46,12 +46,16 @@ fn setup_server(mut commands: Commands, config: Res<ServerConfig>) {
 
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), config.port);
 
-    commands.spawn((
-        Server::default(),
-        NetcodeServer::new(NetcodeConfig::default()),
-        LocalAddr(addr),
-        ServerUdpIo::default(),
-    ));
+    let server = commands
+        .spawn((
+            Server::default(),
+            NetcodeServer::new(NetcodeConfig::default()),
+            LocalAddr(addr),
+            ServerUdpIo::default(),
+        ))
+        .id();
+
+    commands.trigger(Start { entity: server });
 
     info!("Server listening on port {}", config.port);
 }

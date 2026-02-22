@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use bevy_post_process::PostProcessPlugin;
 use clap::Parser;
-use lightyear::prelude::*;
 use lightyear::prelude::client::*;
+use lightyear::prelude::*;
 use schizoid_shared::{SharedPlugin, SERVER_PORT, TICK_DURATION};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
@@ -78,16 +78,20 @@ fn setup_connection(mut commands: Commands, server_addr: Res<ServerAddr>) {
         protocol_id: 0,         // Default protocol matches server default
     };
 
-    commands.spawn((
-        Client::default(),
-        LocalAddr(client_addr),
-        PeerAddr(server_addr.0),
-        Link::new(None),
-        ReplicationReceiver::default(),
-        PredictionManager::default(),
-        NetcodeClient::new(auth, NetcodeConfig::default()).unwrap(),
-        UdpIo::default(),
-    ));
+    let client = commands
+        .spawn((
+            Client::default(),
+            LocalAddr(client_addr),
+            PeerAddr(server_addr.0),
+            Link::new(None),
+            ReplicationReceiver::default(),
+            PredictionManager::default(),
+            NetcodeClient::new(auth, NetcodeConfig::default()).unwrap(),
+            UdpIo::default(),
+        ))
+        .id();
+
+    commands.trigger(Connect { entity: client });
 
     info!("Connecting to server at {}", server_addr.0);
 }
