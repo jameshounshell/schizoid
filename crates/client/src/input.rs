@@ -59,12 +59,12 @@ fn buffer_input(
 }
 
 fn handle_predicted_spawn(
-    trigger: On<Add>,
-    predicted: Query<Entity, (With<Ship>, With<Predicted>)>,
+    trigger: On<Add, Predicted>,
+    ships: Query<Entity, With<Ship>>,
     mut commands: Commands,
 ) {
     let entity = trigger.entity;
-    if predicted.contains(entity) {
+    if ships.contains(entity) {
         commands
             .entity(entity)
             .insert(InputMarker::<PlayerInput>::default());

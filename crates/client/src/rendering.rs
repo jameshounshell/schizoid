@@ -1,5 +1,6 @@
-use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
+use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy_post_process::bloom::Bloom;
 use schizoid_shared::components::*;
 
 pub struct RenderingPlugin;
@@ -36,7 +37,10 @@ fn setup_camera(mut commands: Commands) {
             ..default()
         },
         Tonemapping::TonyMcMapface,
-        // TODO: Add Bloom once we confirm the Bevy 0.18 API
+        Bloom {
+            intensity: 0.3,
+            ..default()
+        },
     ));
 }
 

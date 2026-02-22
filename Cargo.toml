@@ -20,6 +20,8 @@ lightyear = { version = "0.26", features = [
     "prediction",
     "interpolation",
     "input_native",
+    "udp",
+    "netcode",
 ] }
 serde = { version = "1", features = ["derive"] }
 clap = { version = "4", features = ["derive"] }

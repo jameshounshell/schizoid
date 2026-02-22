@@ -1,5 +1,8 @@
 use bevy::prelude::*;
+use bevy_post_process::PostProcessPlugin;
 use clap::Parser;
+use lightyear::prelude::*;
+use lightyear::prelude::client::*;
 use schizoid_shared::{SharedPlugin, SERVER_PORT, TICK_DURATION};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
@@ -17,6 +20,9 @@ struct Args {
     #[arg(short, long, default_value_t = SERVER_PORT)]
     port: u16,
 }
+
+#[derive(Resource)]
+struct ServerAddr(SocketAddr);
 
 fn main() {
     let args = Args::parse();
@@ -38,6 +44,9 @@ fn main() {
         ..default()
     }));
 
+    // Post-processing (bloom)
+    app.add_plugins(PostProcessPlugin);
+
     // Lightyear client
     app.add_plugins(lightyear::prelude::client::ClientPlugins {
         tick_duration: TICK_DURATION,
@@ -48,9 +57,37 @@ fn main() {
     app.add_plugins(input::InputPlugin);
     app.add_plugins(rendering::RenderingPlugin);
 
-    // TODO: spawn client connection entity and connect to server
-    // For now, the client starts but doesn't connect
+    // Client connection setup
+    app.insert_resource(ServerAddr(server_addr));
+    app.add_systems(Startup, setup_connection);
 
     info!("Starting client, connecting to {}", server_addr);
     app.run();
+}
+
+fn setup_connection(mut commands: Commands, server_addr: Res<ServerAddr>) {
+    let client_addr = SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+        0, // Let OS assign port
+    );
+
+    let auth = lightyear::prelude::Authentication::Manual {
+        server_addr: server_addr.0,
+        client_id: rand::random::<u64>(),
+        private_key: [0u8; 32], // Default key matches server default
+        protocol_id: 0,         // Default protocol matches server default
+    };
+
+    commands.spawn((
+        Client::default(),
+        LocalAddr(client_addr),
+        PeerAddr(server_addr.0),
+        Link::new(None),
+        ReplicationReceiver::default(),
+        PredictionManager::default(),
+        NetcodeClient::new(auth, NetcodeConfig::default()).unwrap(),
+        UdpIo::default(),
+    ));
+
+    info!("Connecting to server at {}", server_addr.0);
 }

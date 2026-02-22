@@ -48,9 +48,9 @@ fn setup_server(mut commands: Commands, config: Res<ServerConfig>) {
 
     commands.spawn((
         Server::default(),
-        ServerUdpIo::default(),
         NetcodeServer::new(NetcodeConfig::default()),
         LocalAddr(addr),
+        ServerUdpIo::default(),
     ));
 
     info!("Server listening on port {}", config.port);
