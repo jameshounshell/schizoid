@@ -42,12 +42,12 @@ fn buffer_input(
             dir.x += 1.0;
         }
 
-        // Gamepad left stick (first connected gamepad)
-        if let Some(gamepad) = gamepads.iter().next() {
+        // Gamepad left stick — use whichever gamepad has actual stick input
+        for gamepad in gamepads.iter() {
             let stick = gamepad.left_stick();
             if stick.length_squared() > 0.04 {
-                // Deadzone: 0.2
                 dir = stick;
+                break;
             }
         }
 
