@@ -13,7 +13,9 @@ impl Plugin for InputPlugin {
             FixedPreUpdate,
             buffer_input.in_set(InputSystems::WriteClientInputs),
         );
-        // When a predicted ship spawns, add InputMarker so it receives inputs
+        // Trigger when both Ship AND Predicted are present on an entity.
+        // Ship arrives via component replication (second pass), Predicted via spawn (first pass),
+        // so the tuple observer fires when Ship is added (the last component).
         app.add_observer(handle_predicted_spawn);
     }
 }
@@ -58,16 +60,10 @@ fn buffer_input(
     }
 }
 
-fn handle_predicted_spawn(
-    trigger: On<Add, Predicted>,
-    ships: Query<Entity, With<Ship>>,
-    mut commands: Commands,
-) {
+fn handle_predicted_spawn(trigger: On<Add, (Ship, Predicted)>, mut commands: Commands) {
     let entity = trigger.entity;
-    if ships.contains(entity) {
-        commands
-            .entity(entity)
-            .insert(InputMarker::<PlayerInput>::default());
-        info!("Predicted ship spawned, added input marker");
-    }
+    commands
+        .entity(entity)
+        .insert(InputMarker::<PlayerInput>::default());
+    info!("Predicted ship spawned, added input marker to {:?}", entity);
 }

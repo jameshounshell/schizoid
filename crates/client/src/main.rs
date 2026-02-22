@@ -53,6 +53,19 @@ fn main() {
     app.add_plugins(input::InputPlugin);
     app.add_plugins(rendering::RenderingPlugin);
 
+    // Client-side prediction: run shared game systems on predicted entities
+    app.add_systems(
+        FixedUpdate,
+        (
+            schizoid_shared::systems::ship_movement,
+            schizoid_shared::systems::enemy_movement,
+            schizoid_shared::systems::chaser_ai,
+            schizoid_shared::systems::collision_system,
+            schizoid_shared::systems::respawn_system,
+        )
+            .chain(),
+    );
+
     // Client connection setup
     app.insert_resource(ServerAddr(server_addr));
     app.add_systems(Startup, setup_connection);
