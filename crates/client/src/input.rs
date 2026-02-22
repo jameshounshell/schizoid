@@ -13,9 +13,6 @@ impl Plugin for InputPlugin {
             FixedPreUpdate,
             buffer_input.in_set(InputSystems::WriteClientInputs),
         );
-        // Trigger when both Ship AND Predicted are present on an entity.
-        // Ship arrives via component replication (second pass), Predicted via spawn (first pass),
-        // so the tuple observer fires when Ship is added (the last component).
         app.add_observer(handle_predicted_spawn);
     }
 }
