@@ -61,16 +61,24 @@ The client runs the same game systems as the server in `FixedUpdate` so that pla
 
 ## Resume on Next Session
 
-### Xbox Controller Support (pending logout/login)
-- Added `input` group to user in NixOS config
-- Added `hardware.steam-hardware.enable = true` for udev rules
-- NixOS rebuilt, but **logout/login required** for group membership to take effect
-- After re-login: test Xbox controller with `task server` + `task client`, verify left stick moves ship
-- If controller still not detected after re-login, check `ls -la /dev/input/event22` permissions
+### Xbox Controller + Steam Input Conflict (2026-02-23)
+**Problem:** xpadneo (proper analog) and Steam Input fight over the controller.
+- `hid_microsoft` (no xpadneo): 8-direction digital sticks, but Steam works via hidraw
+- `xpadneo`: smooth analog, but Steam also grabs hidraw — both try to own the controller
+- EVIOCGRAB approach **failed**: it blocks gilrs (same process, different fd) AND doesn't affect Steam (which uses hidraw, not evdev)
+- The evdev `event22` (xpadneo emulated Xbox 360) is what gilrs reads; `event17` is the raw HID device
+
+**Next approach options (needs fresh thinking):**
+1. **Simplest:** Disable "Enable Steam Input for Xbox controllers" in Steam settings — let xpadneo + gilrs handle it natively
+2. **SDL2-based input** instead of gilrs — SDL2 handles Steam coexistence natively
+3. **Add as non-Steam game** — Steam manages the controller handoff when launching through Steam
+4. Test if disabling Steam Input for Xbox globally fixes both analog quality AND Steam interference
+
+**Moonlander workaround (working):** udev rule strips `ID_INPUT_JOYSTICK` from ZSA Moonlander so gilrs/Bevy ignores it
 
 ### Current State
 - WASD keyboard input: **working**
-- Xbox controller input: **pending re-login** (permissions issue, not code issue)
+- Xbox controller input: **partially working** (detected by gilrs, left stick moves ship, but 8-way feel + Steam conflict)
 - Client-server networking: **working** (UDP + netcode)
 - Client-side prediction: **working** (shared systems in FixedUpdate)
 - Bloom rendering: **working** (Bevy built-in post-processing)
