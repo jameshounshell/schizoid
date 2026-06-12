@@ -120,16 +120,25 @@ pub fn collision_system(
     }
 }
 
-pub fn respawn_system(mut ships: Query<(&mut Health, &mut Position), With<Ship>>) {
+/// Read-only view of enemy positions/colors, shared by the respawn helpers.
+type EnemyQuery<'w, 's> =
+    Query<'w, 's, (&'static Position, &'static TeamColor), (With<EnemyType>, Without<Ship>)>;
+
+#[allow(clippy::type_complexity)]
+pub fn respawn_system(
+    mut ships: Query<(&mut Health, &mut Position, &TeamColor), With<Ship>>,
+    enemies: EnemyQuery,
+    bounds: Res<ArenaBounds>,
+) {
     let dt = 1.0 / 60.0;
 
-    for (mut health, mut pos) in ships.iter_mut() {
+    for (mut health, mut pos, color) in ships.iter_mut() {
         if !health.alive {
             health.respawn_timer -= dt;
             if health.respawn_timer <= 0.0 {
                 health.alive = true;
                 health.invulnerable_timer = INVULNERABLE_TIME;
-                pos.0 = Vec2::ZERO;
+                pos.0 = safe_respawn_position(*color, &enemies, &bounds);
             }
         }
 
@@ -137,4 +146,45 @@ pub fn respawn_system(mut ships: Query<(&mut Health, &mut Position), With<Ship>>
             health.invulnerable_timer -= dt;
         }
     }
+}
+
+/// Pick the respawn candidate farthest from any lethal (opposite-color)
+/// enemy, so a ship doesn't respawn into the middle of a swarm. Candidates:
+/// center + a 3x3 grid at half-extents.
+fn safe_respawn_position(
+    ship_color: TeamColor,
+    enemies: &EnemyQuery,
+    bounds: &ArenaBounds,
+) -> Vec2 {
+    let hw = bounds.half_width * 0.5;
+    let hh = bounds.half_height * 0.5;
+    let candidates = [
+        Vec2::ZERO,
+        Vec2::new(hw, 0.0),
+        Vec2::new(-hw, 0.0),
+        Vec2::new(0.0, hh),
+        Vec2::new(0.0, -hh),
+        Vec2::new(hw, hh),
+        Vec2::new(-hw, hh),
+        Vec2::new(hw, -hh),
+        Vec2::new(-hw, -hh),
+    ];
+
+    candidates
+        .into_iter()
+        .max_by(|a, b| {
+            let da = nearest_threat_distance(*a, ship_color, enemies);
+            let db = nearest_threat_distance(*b, ship_color, enemies);
+            da.partial_cmp(&db).unwrap()
+        })
+        .unwrap_or(Vec2::ZERO)
+}
+
+fn nearest_threat_distance(point: Vec2, ship_color: TeamColor, enemies: &EnemyQuery) -> f32 {
+    enemies
+        .iter()
+        .filter(|(_, c)| **c != ship_color)
+        .map(|(p, _)| p.0.distance(point))
+        .min_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap_or(f32::MAX)
 }

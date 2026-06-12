@@ -62,3 +62,25 @@ fn invulnerable_ship_survives() {
 
     assert!(sim.is_alive(ship), "Ship should have respawned");
 }
+
+#[test]
+fn respawn_avoids_enemy_swarm() {
+    let mut sim = GameSim::new();
+    let ship = sim.spawn_player(TeamColor::Red, Vec2::ZERO);
+
+    // Blue swarm parked on the center respawn point
+    let killer = sim.spawn_drifter(TeamColor::Blue, Vec2::new(1.0, 0.0), Vec2::ZERO);
+    let _b2 = sim.spawn_drifter(TeamColor::Blue, Vec2::new(-20.0, 10.0), Vec2::ZERO);
+    let _b3 = sim.spawn_drifter(TeamColor::Blue, Vec2::new(15.0, -15.0), Vec2::ZERO);
+
+    sim.step(5);
+    assert!(sim.is_dead(ship), "Ship should be dead");
+
+    sim.step(130); // respawn timer
+    assert!(sim.is_alive(ship), "Ship should have respawned");
+    assert!(
+        sim.distance(ship, killer) > 100.0,
+        "Ship should respawn away from the swarm, got distance {}",
+        sim.distance(ship, killer)
+    );
+}
