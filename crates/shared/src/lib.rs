@@ -1,3 +1,4 @@
+pub mod bot;
 pub mod components;
 pub mod enemies;
 pub mod protocol;

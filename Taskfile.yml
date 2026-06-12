@@ -75,11 +75,35 @@ tasks:
         echo "Client started (PID $CLIENT_PID)"
         echo "Run 'task stop' to tear down"
 
+  demo:
+    desc: Unattended demo — server + two bot clients, screenshots + logs to .tmp/
+    cmds:
+      - nix develop -c cargo build --workspace
+      - mkdir -p .tmp
+      - |
+        DURATION={{.DURATION | default 60}}
+        nix develop -c cargo run -p schizoid-server > .tmp/demo-server.log 2>&1 &
+        echo $! > /tmp/schizoid-server.pid
+        echo "Server started (PID $(cat /tmp/schizoid-server.pid))"
+        sleep 2
+        nix develop -c cargo run -p schizoid-client -- --bot \
+          --screenshot .tmp/demo-p1.png --screenshot-at 15 \
+          --exit-after $DURATION > .tmp/demo-client1.log 2>&1 &
+        echo $! > /tmp/schizoid-client.pid
+        echo "Bot client 1 started (PID $(cat /tmp/schizoid-client.pid))"
+        sleep 2
+        nix develop -c cargo run -p schizoid-client -- --bot \
+          --screenshot .tmp/demo-p2.png --screenshot-at 20 \
+          --exit-after $DURATION > .tmp/demo-client2.log 2>&1 &
+        echo $! > /tmp/schizoid-client2.pid
+        echo "Bot client 2 started (PID $(cat /tmp/schizoid-client2.pid))"
+        echo "Demo running ~${DURATION}s. Logs in .tmp/demo-*.log, screenshots .tmp/demo-p*.png"
+
   stop:
     desc: Kill running server and client
     cmds:
       - |
-        for f in /tmp/schizoid-server.pid /tmp/schizoid-client.pid; do
+        for f in /tmp/schizoid-server.pid /tmp/schizoid-client.pid /tmp/schizoid-client2.pid; do
           if [ -f "$f" ]; then
             pid=$(cat "$f")
             if kill -0 "$pid" 2>/dev/null; then

@@ -13,6 +13,7 @@ impl Plugin for RenderingPlugin {
         app.add_systems(Update, spawn_ship_visuals);
         app.add_systems(Update, spawn_enemy_visuals);
         app.add_systems(Update, update_hud);
+        app.add_systems(Update, update_status);
         app.add_systems(Update, blink_invulnerable);
     }
 }
@@ -167,11 +168,32 @@ fn spawn_enemy_visuals(
     }
 }
 
-/// Update wave counter HUD
-fn update_hud(wave: Res<WaveState>, mut wave_text: Query<&mut Text, With<WaveText>>) {
-    if wave.is_changed() {
+/// Update wave counter HUD from the replicated WaveInfo entity
+fn update_hud(
+    wave: Query<&WaveInfo, Changed<WaveInfo>>,
+    mut wave_text: Query<&mut Text, With<WaveText>>,
+) {
+    if let Ok(info) = wave.single() {
         for mut text in wave_text.iter_mut() {
-            *text = Text::new(format!("Wave {}", wave.current_wave));
+            *text = Text::new(format!("Wave {}", info.wave));
+        }
+    }
+}
+
+/// Show connection state: flip "Waiting..." to the ship's color once the
+/// predicted ship arrives from the server.
+fn update_status(
+    ships: Query<&TeamColor, (With<Ship>, With<lightyear::prelude::Predicted>)>,
+    mut status_text: Query<&mut Text, With<StatusText>>,
+    mut shown: Local<bool>,
+) {
+    if *shown {
+        return;
+    }
+    if let Ok(color) = ships.single() {
+        *shown = true;
+        for mut text in status_text.iter_mut() {
+            *text = Text::new(format!("Connected — playing {color:?}"));
         }
     }
 }

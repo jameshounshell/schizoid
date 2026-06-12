@@ -38,5 +38,8 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Velocity>().add_prediction();
 
         app.register_component::<OrbitData>().add_prediction();
+
+        // Plain replication, no prediction — HUD data only
+        app.register_component::<WaveInfo>();
     }
 }

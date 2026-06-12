@@ -57,6 +57,12 @@ fn setup_server(mut commands: Commands, config: Res<ServerConfig>) {
 
     commands.trigger(Start { entity: server });
 
+    // Replicated HUD entity — carries the wave number to all clients
+    commands.spawn((
+        WaveInfo::default(),
+        Replicate::to_clients(NetworkTarget::All),
+    ));
+
     info!("Server listening on port {}", config.port);
 }
 
@@ -117,6 +123,7 @@ fn wave_manager(
     mut wave: ResMut<WaveState>,
     enemies: Query<Entity, With<EnemyType>>,
     bounds: Res<ArenaBounds>,
+    mut wave_info: Query<&mut WaveInfo>,
     mut commands: Commands,
 ) {
     // Count remaining enemies
@@ -134,7 +141,18 @@ fn wave_manager(
         if wave.breather_timer <= 0.0 {
             wave.current_wave += 1;
             info!("Starting wave {}", wave.current_wave);
-            spawn_wave(&mut commands, wave.current_wave, &bounds);
+            let spawned = spawn_wave(&mut commands, wave.current_wave, &bounds);
+            // Enemies are predicted on ALL clients — both clients run the
+            // same enemy systems in FixedUpdate, server corrections roll back
+            for entity in spawned {
+                commands.entity(entity).insert((
+                    Replicate::to_clients(NetworkTarget::All),
+                    PredictionTarget::to_clients(NetworkTarget::All),
+                ));
+            }
+            if let Ok(mut info) = wave_info.single_mut() {
+                info.wave = wave.current_wave;
+            }
             wave.active = true;
         }
     }

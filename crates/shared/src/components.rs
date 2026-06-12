@@ -77,6 +77,14 @@ pub struct OrbitData {
 #[derive(Component, Serialize, Deserialize, Clone, Debug, PartialEq, Reflect)]
 pub struct OwnedBy(pub u64);
 
+/// Replicated wave counter — server updates it, clients render it.
+/// (WaveState is a server-local resource; resources don't replicate, so
+/// the wave number rides on this component instead.)
+#[derive(Component, Serialize, Deserialize, Clone, Debug, PartialEq, Reflect, Default)]
+pub struct WaveInfo {
+    pub wave: u32,
+}
+
 #[derive(Resource, Clone, Debug, Default)]
 pub struct WaveState {
     pub current_wave: u32,

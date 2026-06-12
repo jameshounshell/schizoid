@@ -18,10 +18,33 @@ struct Args {
     /// Server port
     #[arg(short, long, default_value_t = SERVER_PORT)]
     port: u16,
+
+    /// Drive the ship with the built-in bot AI instead of keyboard/gamepad
+    #[arg(long)]
+    bot: bool,
+
+    /// Save a screenshot to this path (for unattended verification)
+    #[arg(long)]
+    screenshot: Option<String>,
+
+    /// Seconds to wait before taking the screenshot
+    #[arg(long, default_value_t = 8.0)]
+    screenshot_at: f32,
+
+    /// Exit automatically after this many seconds (unattended runs)
+    #[arg(long)]
+    exit_after: Option<f32>,
 }
 
 #[derive(Resource)]
 struct ServerAddr(SocketAddr);
+
+#[derive(Resource)]
+struct AutoRunConfig {
+    screenshot: Option<String>,
+    screenshot_at: f32,
+    exit_after: Option<f32>,
+}
 
 fn main() {
     let args = Args::parse();
@@ -68,10 +91,48 @@ fn main() {
 
     // Client connection setup
     app.insert_resource(ServerAddr(server_addr));
+    app.insert_resource(input::BotMode(args.bot));
+    app.insert_resource(AutoRunConfig {
+        screenshot: args.screenshot,
+        screenshot_at: args.screenshot_at,
+        exit_after: args.exit_after,
+    });
     app.add_systems(Startup, setup_connection);
+    app.add_systems(Update, auto_run);
 
     info!("Starting client, connecting to {}", server_addr);
     app.run();
+}
+
+/// Unattended-run helpers: timed screenshot for visual verification and
+/// timed exit so demo runs tear themselves down.
+fn auto_run(
+    mut commands: Commands,
+    cfg: Res<AutoRunConfig>,
+    time: Res<Time>,
+    mut screenshot_taken: Local<bool>,
+    mut exit: MessageWriter<AppExit>,
+) {
+    let elapsed = time.elapsed_secs();
+
+    if let Some(path) = &cfg.screenshot {
+        if !*screenshot_taken && elapsed >= cfg.screenshot_at {
+            *screenshot_taken = true;
+            info!("Taking screenshot -> {}", path);
+            commands
+                .spawn(bevy::render::view::window::screenshot::Screenshot::primary_window())
+                .observe(bevy::render::view::window::screenshot::save_to_disk(
+                    path.clone(),
+                ));
+        }
+    }
+
+    if let Some(deadline) = cfg.exit_after {
+        if elapsed >= deadline {
+            info!("exit_after {} reached, exiting", deadline);
+            exit.write(AppExit::Success);
+        }
+    }
 }
 
 fn setup_connection(mut commands: Commands, server_addr: Res<ServerAddr>) {

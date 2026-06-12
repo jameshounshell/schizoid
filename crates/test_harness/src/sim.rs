@@ -175,6 +175,15 @@ impl GameSim {
         self.app.world().get_entity(entity).is_ok()
     }
 
+    /// Get an entity's team color.
+    pub fn team_color(&self, entity: Entity) -> TeamColor {
+        *self
+            .app
+            .world()
+            .get::<TeamColor>(entity)
+            .expect("entity has no TeamColor")
+    }
+
     /// Get velocity of an entity.
     pub fn velocity(&self, entity: Entity) -> Vec2 {
         self.app
