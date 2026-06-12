@@ -193,7 +193,8 @@ fn update_status(
     if let Ok(color) = ships.single() {
         *shown = true;
         for mut text in status_text.iter_mut() {
-            *text = Text::new(format!("Connected — playing {color:?}"));
+            // ASCII only — Bevy's default font has no em-dash glyph (renders tofu)
+            *text = Text::new(format!("Connected - playing {color:?}"));
         }
     }
 }

@@ -77,10 +77,29 @@ fn buffer_input(
     }
 }
 
-fn handle_predicted_spawn(trigger: On<Add, (Ship, Predicted)>, mut commands: Commands) {
+/// Tuple observer fires on EITHER component add (Ship or Predicted), and
+/// enemies are predicted too — so guard: only the entity that ends up with
+/// BOTH Ship and Predicted (= our own ship) gets the input marker. The
+/// observer re-fires when the second component lands, so replication's
+/// two-pass insert ordering is still handled.
+#[allow(clippy::type_complexity)]
+fn handle_predicted_spawn(
+    trigger: On<Add, (Ship, Predicted)>,
+    own_ship: Query<
+        (),
+        (
+            With<Ship>,
+            With<Predicted>,
+            Without<InputMarker<PlayerInput>>,
+        ),
+    >,
+    mut commands: Commands,
+) {
     let entity = trigger.entity;
-    commands
-        .entity(entity)
-        .insert(InputMarker::<PlayerInput>::default());
-    info!("Predicted ship spawned, added input marker to {:?}", entity);
+    if own_ship.get(entity).is_ok() {
+        commands
+            .entity(entity)
+            .insert(InputMarker::<PlayerInput>::default());
+        info!("Own predicted ship spawned, added input marker to {entity:?}");
+    }
 }

@@ -61,32 +61,53 @@ The client runs the same game systems as the server in `FixedUpdate` so that pla
 
 ## Resume on Next Session
 
-### Xbox Controller + Steam Input Conflict (2026-02-23)
-**Problem:** xpadneo (proper analog) and Steam Input fight over the controller.
-- `hid_microsoft` (no xpadneo): 8-direction digital sticks, but Steam works via hidraw
-- `xpadneo`: smooth analog, but Steam also grabs hidraw — both try to own the controller
-- EVIOCGRAB approach **failed**: it blocks gilrs (same process, different fd) AND doesn't affect Steam (which uses hidraw, not evdev)
-- The evdev `event22` (xpadneo emulated Xbox 360) is what gilrs reads; `event17` is the raw HID device
+### Bot Demo Mode (2026-06-12)
 
-**Next approach options (needs fresh thinking):**
-1. **Simplest:** Disable "Enable Steam Input for Xbox controllers" in Steam settings — let xpadneo + gilrs handle it natively
-2. **SDL2-based input** instead of gilrs — SDL2 handles Steam coexistence natively
-3. **Add as non-Steam game** — Steam manages the controller handoff when launching through Steam
-4. Test if disabling Steam Input for Xbox globally fixes both analog quality AND Steam interference
+Two-player game runs unattended: `task demo` (or `task demo DURATION=90`) starts
+the server + two `--bot` clients. Bots are full network clients — same input
+path as a human, just AI-fed. Screenshots land in `.tmp/demo-p*.png`, logs in
+`.tmp/demo-*.log`. Verify visually by reading the PNGs.
 
-**Moonlander workaround (working):** udev rule strips `ID_INPUT_JOYSTICK` from ZSA Moonlander so gilrs/Bevy ignores it
+**Client flags:** `--bot` (AI ship), `--screenshot <path>` + `--screenshot-at <s>`,
+`--exit-after <s>` (unattended teardown).
+
+**Bot AI** (`shared/src/bot.rs`): samples 16 directions, scores endpoint+midpoint
+threat encroachment (quadratic) vs nearest-target distance, adaptive lookahead.
+Futures are wall-clamped exactly like ship_movement so the bot can't corner itself.
+
+### Lightyear Gotchas Learned This Session
+- **Enemies were never replicated** until 2026-06-12. They now get
+  `Replicate::to_clients(All)` + `PredictionTarget::to_clients(All)` in
+  `wave_manager` (spawn_wave returns the entities; the server attaches networking).
+- **Tuple observers fire per component:** `On<Add, (Ship, Predicted)>` fires when
+  EITHER lands — predicted enemies and the interpolated remote ship triggered it
+  too, giving them InputMarkers and breaking `single_mut()`. Guard the observer
+  body with a query check for the full component set.
+- **Never plain-`despawn()` predicted entities** in shared systems. Client-predicted
+  kills the server didn't confirm left enemies alive server-side but invisible
+  client-side — waves stalled forever. Use `prediction_despawn()`
+  (lightyear::prelude::PredictionDespawnCommandsExt): on clients it disables +
+  lets rollback revive; on the server it despawns for real.
+- **Resources don't replicate.** Wave number rides on the replicated `WaveInfo`
+  component (server spawns one entity at startup); `WaveState` stays server-local.
+- Bevy's default font has no em-dash glyph — ASCII only in UI text.
+
+### Controller Input — SHELVED (2026-06-12)
+Xbox controller (xpadneo vs Steam Input hidraw conflict) parked by user decision.
+Keyboard WASD still works. History in git: CLAUDE.md @ b71a6b1.
 
 ### Current State
-- WASD keyboard input: **working**
-- Xbox controller input: **partially working** (detected by gilrs, left stick moves ship, but 8-way feel + Steam conflict)
-- Client-server networking: **working** (UDP + netcode)
-- Client-side prediction: **working** (shared systems in FixedUpdate)
-- Bloom rendering: **working** (Bevy built-in post-processing)
-- 10 game logic tests: **passing**
+- Two-client co-op (red + blue ships): **working** (bot-driven demo verified)
+- Bot AI players: **working** (hunt same-color, flee opposite-color, kite chasers)
+- Enemy replication + client prediction: **working**
+- Color-matching collision: **working** (same = kill enemy, opposite = die)
+- Death/respawn + invulnerability blink: implemented
+- Wave counter UI: **working** (replicated WaveInfo)
+- Tests: 17 passing (10 logic + 5 bot unit + 2 bot integration)
 
 ### What's Next (from design doc MVP scope)
-- Second player support (two clients, red + blue ships)
-- Color-matching collision (same color = kill enemy, opposite = kill ship)
-- Death/respawn visuals (blinking during invulnerability)
-- Wave counter UI
+- Verify wave progression across multiple waves in longer runs
+- Death/respawn visuals polish (respawn at safe location, not center)
 - Server verification API (user requested POST endpoint for programmatic testing)
+- Chaser/Orbiter visual distinctiveness check (triangle/ring shapes at bloom)
+- Revisit human input later (keyboard works; controller shelved)

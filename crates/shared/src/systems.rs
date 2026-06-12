@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::input::native::ActionState;
+use lightyear::prelude::PredictionDespawnCommandsExt;
 
 use crate::components::*;
 use crate::protocol::PlayerInput;
@@ -103,7 +104,13 @@ pub fn collision_system(
 
             if dist < min_dist {
                 if *ship_color == *enemy_color {
-                    commands.entity(enemy_entity).despawn();
+                    // prediction_despawn, NOT despawn: on the client this only
+                    // disables the predicted enemy — if the server disagrees
+                    // (graze divergence), rollback revives it so the bot/player
+                    // can re-engage. Plain despawn left enemies alive on the
+                    // server but invisible on the client, stalling waves.
+                    // On the server (no PredictionResource) it despawns for real.
+                    commands.entity(enemy_entity).prediction_despawn();
                 } else if ship_health.invulnerable_timer <= 0.0 {
                     ship_health.alive = false;
                     ship_health.respawn_timer = RESPAWN_TIME;
